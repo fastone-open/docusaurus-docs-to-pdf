@@ -500,7 +500,7 @@ async function main() {
         console.log("[App Start] Starting PDF generation process...");
 
         program
-            .version('0.0.2')
+            .version('0.0.3')
             .description('Converts Docusaurus documentation to a single PDF file.')
             .option('-u, --docs-url <url>', 'The base URL of the Docusaurus documentation (e.g., "http://localhost:3000/docs/introduction")')
             .option('-o, --pdf-path <path>', 'The output file path for the generated PDF (e.g., "output/my-docs.pdf")')

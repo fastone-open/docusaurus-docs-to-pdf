@@ -1,6 +1,6 @@
 {
   "name": "docusaurus-docs-to-pdf",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A command-line tool to convert Docusaurus documentation sites to a single PDF file.",
   "main": "main.js",
   "bin": "./dist/main.js",
