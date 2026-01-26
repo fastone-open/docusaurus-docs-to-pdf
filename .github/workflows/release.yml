@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main # Trigger on every push to main
+
+permissions:
+  contents: write
+  id-token: write # Required for NPM Trusted Publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build project
+        run: yarn build
+
+      - name: Publish to NPM (Trusted Publishing)
+        # It will only publish if the version in package.json is new
+        run: |
+          if npm view . version | grep -q $(node -p "require('./package.json').version"); then
+            echo "Version already exists on NPM. Skipping publish."
+          else
+            npm publish --provenance --access public
+          fi
