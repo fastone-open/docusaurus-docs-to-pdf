@@ -1,6 +1,6 @@
 {
   "name": "docusaurus-docs-to-pdf",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A command-line tool to convert Docusaurus documentation sites to a single PDF file.",
   "main": "dist/main.js",
   "files": [
@@ -21,7 +21,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "yarn build && yarn start"
+    "dev": "yarn build && yarn start",
+    "postinstall": "puppeteer browsers install chrome"
   },
   "dependencies": {
     "commander": "^14.0.0",
