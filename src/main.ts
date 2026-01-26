@@ -17,6 +17,7 @@ import {launchBrowser, requestForImage} from "./browser";
 import consoleStamp from "console-stamp";
 import path from "node:path";
 import * as fs from "node:fs";
+import { buildInfo } from './buildInfo';
 
 import { Command } from 'commander';
 import * as os from "node:os";
@@ -561,7 +562,7 @@ async function main() {
         console.log("[App Start] Starting PDF generation process...");
 
         program
-            .version('0.0.3')
+            .version(`${buildInfo.version} (commit: ${buildInfo.commitHash}, build: ${buildInfo.buildTime})`, '-v, --version')
             .description('Converts Docusaurus documentation to a single PDF file.')
             .option('-u, --docs-url <url>', 'The base URL of the Docusaurus documentation (e.g., "http://localhost:3000/docs/introduction")')
             .option('-o, --pdf-path <path>', 'The output file path for the generated PDF (e.g., "output/my-docs.pdf")')

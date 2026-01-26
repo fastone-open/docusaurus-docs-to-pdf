@@ -41,11 +41,17 @@ Run the script from the command line and pass the appropriate arguments.
 
 ### Command-Line Arguments
 
-```bash
-docusaurus-docs-to-pdf -h
-# or
-npx docusaurus-docs-to-pdf -h
-```
+You can run `docusaurus-docs-to-pdf -h` to see the help message, or refer to the table below:
+
+| Argument | Alias | Description | Required | Default |
+| :--- | :--- | :--- | :--- | :--- |
+| `--docs-url <url>` | `-u` | The base URL of the Docusaurus documentation (e.g., "http://localhost:3000/docs/introduction") | **Yes** | - |
+| `--pdf-path <path>` | `-o` | The output file path for the generated PDF (e.g., "output/my-docs.pdf") | **Yes** | - |
+| `--pdf-cover-image <pathOrUrl>` | `-c` | The URL or local file path for the PDF cover image | No | - |
+| `--pdf-margin-mm <number>` | `-m` | The margin size in millimeters to apply to all sides of the PDF pages | No | `10` |
+| `--page-concurrency <number>` | `-p` | The maximum number of concurrent browser pages to use for content fetching | No | 2x CPU cores |
+| `--css <style>` | `-S` | Inject custom CSS styles directly. Can be used multiple times | No | - |
+| `--site-rewrite <from=to>` | `-r` | Rewrite site domain in links (e.g., "http://localhost:3000=https://docs.example.com"). Can be used multiple times | No | - |
 
 ### Examples
 

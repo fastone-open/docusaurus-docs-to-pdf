@@ -19,7 +19,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/generate-build-info.js && tsc",
     "start": "node dist/main.js",
     "dev": "yarn build && yarn start"
   },

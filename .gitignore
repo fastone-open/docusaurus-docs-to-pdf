@@ -17,3 +17,6 @@ package-lock.json
 # Environment variables
 .env
 .env.local
+
+# Generated files
+src/buildInfo.ts
