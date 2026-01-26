@@ -254,6 +254,22 @@ function resolveBrowserUrl(inputPath: string): string {
     const fileUrl = 'file:///' + absoluteFilePath.replace(/\\/g, '/'); // Replace backslashes for URL consistency
     return fileUrl;
 }
+
+/**
+ * Helper function to collect multiple CSS options.
+ */
+function collectCss(value: string, previous: string[]) {
+    return previous.concat([value]);
+}
+
+/**
+ * Helper function to collect multiple site rewrite options.
+ * Parses strings in the format "from=to" or just "to" (in which case docsUrl origin is used as "from").
+ */
+function collectRewrites(value: string, previous: string[]): string[] {
+    return previous.concat([value]);
+}
+
 /**
  * Defines all configurable options for the PDF generation process.
  * These options are typically passed via command-line arguments and control
@@ -290,10 +306,19 @@ export interface PdfGenerationOptions {
      * A common balance for I/O-bound tasks is to set this to 1.5 to 2 times the number of CPU cores.
      */
     pageConcurrency: number;
+    /**
+     * Custom CSS styles to inject into the PDF.
+     */
+    customStyles?: string[];
+    /**
+     * Optional. Rules for rewriting site domains in hyperlinks.
+     * Format: [[from, to], ...]
+     */
+    siteRewrites?: [string, string][];
 }
 
 async function convertDocusaurusPageToPdf(
-    {docsUrl, pdfPath, pdfCoverImage, pdfMarginMm, pageConcurrency}:
+    {docsUrl, pdfPath, pdfCoverImage, pdfMarginMm, pageConcurrency, customStyles, siteRewrites}:
     PdfGenerationOptions
 ): Promise<void> {
     // Define the PDF paper format (e.g., 'A4'). This dictates the physical page dimensions.
@@ -376,22 +401,24 @@ async function convertDocusaurusPageToPdf(
                 coverImageBase64,
                 paperFormat // Pass the resolved paper format object
             );
-            html += coverHtml;
+            html += coverHtml.trim();
         } else if (pdfCoverImage) {
             console.warn("[Stage 3/4 - HTML Rendering] PDF Cover Image URL was provided but image data could not be retrieved. Skipping cover page.");
         }
-        
+
         const tocHtml = generateTocHtml(sidebarItems, '目录');
-        html += tocHtml;
-        
+        html += tocHtml.trim();
+
         for (const singlePageDetail of pageDetails) { // Renamed 'page' to 'singlePageDetail' for clarity
-            html += singlePageDetail.html;
+            html += singlePageDetail.html.trim();
         }
         console.log("[Stage 3/4 - HTML Rendering] All content merged. Injecting into Puppeteer page...");
-        
+
         await page.evaluate(replaceBodyInnerHtml, html);
         await page.evaluate(removeLazyLoading);
         console.log("[Stage 3/4 - HTML Rendering] HTML content injected into Puppeteer page's DOM.");
+
+        await page.emulateMediaType('print');
         
         if (pdfCoverImage) {
             await page.addStyleTag({
@@ -410,12 +437,46 @@ async function convertDocusaurusPageToPdf(
                 @page {
                     margin: ${pdfMarginMm}mm !important;
                 }
+                @media print {
+                    /* Professional print header sizes (Standard Practice) */
+                    h1 { font-size: 24pt !important; }
+                    h2 { font-size: 18pt !important; }
+                    h3 { font-size: 14pt !important; }
+                    h4 { font-size: 12pt !important; }
+                    h5 { font-size: 11pt !important; }
+                    h6 { font-size: 10pt !important; }
+
+                    /*symotion-prefix)  Handle page breaks properly */
+                    .pdf-cover, .docusaurus-toc-body {
+                        page-break-after: always !important;
+                        overflow: hidden !important;
+                    }
+                    /* Each documentation section starts on a new page */
+                    div[class*="theme-doc-markdown"] {
+                        page-break-after: always !important;
+                    }
+                    /* Allow page breaks inside content for long documents */
+                    div[class*="theme-doc-markdown"] {
+                        page-break-inside: auto !important;
+                    }
+                    .pdf-cover:last-child, .docusaurus-toc-body:last-child, div[class*="theme-doc-markdown"]:last-child {
+                        page-break-after: auto !important;
+                    }
+                }
             `
         });
-        console.log(`[Stage 3/4 - HTML Rendering] Applied general page margins of ${pdfMarginMm}mm.`);
         
+        console.log(`[Stage 3/4 - HTML Rendering] Applied professional print header sizes and layout optimizations.`);
+
+        if (customStyles && customStyles.length > 0) {
+            for (const style of customStyles) {
+                await page.addStyleTag({ content: style });
+            }
+            console.log(`[Stage 3/4 - HTML Rendering] Applied ${customStyles.length} custom style(s).`);
+        }
+
         const pathToAnchors = pageDetails.map(it => [it.path, it.id] as [string, string]);
-        await page.evaluate(rewriteLinks, pathToAnchors);
+        await page.evaluate(rewriteLinks, pathToAnchors, siteRewrites);
         console.log("[Stage 3/4 - HTML Rendering] Internal links rewritten to point to anchor IDs.");
         
         await page.evaluate(
@@ -507,8 +568,10 @@ async function main() {
             .option('-c, --pdf-cover-image <pathOrUrl>', 'Optional. The URL or local file path (e.g., "cover.jpg", "/path/to/cover.jpg" "file:///path/to/image.jpg") for the PDF cover image.')
             .option('-m, --pdf-margin-mm <number>', 'The margin size in millimeters to apply to all sides of the PDF pages.', '10')
             .option('-p, --page-concurrency <number>', 'The maximum number of concurrent browser pages to use for content fetching (e.g., 5, 10). Defaults to 2x CPU cores.', `${os.cpus().length * 2}`)
+            .option('-S, --css <style>', 'Inject custom CSS styles directly. Can be used multiple times.', collectCss, [])
+            .option('-r, --site-rewrite <from=to>', 'Rewrite site domain in links (e.g., "http://localhost:3000=https://docs.example.com"). Can be used multiple times.', collectRewrites, [])
             .parse(process.argv); // Parse the arguments
-        
+
         const options = program.opts(); // Get the parsed options
         if (!options.docsUrl) {
             program.error('Missing required option: --docs-url <url>');
@@ -523,6 +586,21 @@ async function main() {
             pdfCoverImage: options.pdfCoverImage as string | undefined,
             pdfMarginMm: parseInt(options.pdfMarginMm, 10),
             pageConcurrency: parseInt(options.pageConcurrency, 10),
+            customStyles: options.css as string[] | undefined,
+            siteRewrites: (options.siteRewrite as string[] | undefined)?.map(val => {
+                if (val.includes('=')) {
+                    const [from, to] = val.split('=');
+                    return [from, to] as [string, string];
+                } else {
+                    try {
+                        const url = new URL(options.docsUrl as string);
+                        return [url.origin, val] as [string, string];
+                    } catch (e) {
+                        console.warn(`[Arg Parser] Warning: Could not determine origin from docsUrl for rewrite "${val}". Skipping.`);
+                        return ['', ''] as [string, string];
+                    }
+                }
+            }).filter(it => it[0] !== ''),
         };
         if (isNaN(pdfGenerationOptions.pdfMarginMm)) {
             console.warn(`[Arg Parser] Warning: --pdf-margin-mm could not be parsed as a number. Using default of 10mm.`);
