@@ -21,8 +21,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "yarn build && yarn start",
-    "postinstall": "puppeteer browsers install chrome"
+    "dev": "yarn build && yarn start"
   },
   "dependencies": {
     "commander": "^14.0.0",

@@ -27,6 +27,14 @@ npm install -g docusaurus-docs-to-pdf
 yarn global add docusaurus-docs-to-pdf
 ```
 
+### Prerequisites
+
+This tool relies on Puppeteer and requires a compatible Chrome/Chromium browser. If you encounter a "Could not find Chrome" error, you need to install the browser manually:
+
+```bash
+npx puppeteer browsers install chrome
+```
+
 ## Usage
 
 Run the script from the command line and pass the appropriate arguments.
