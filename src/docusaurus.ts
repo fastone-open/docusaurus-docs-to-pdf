@@ -176,10 +176,6 @@ export async function getElementOuterHtml(selector: string): Promise<string> {
     const element: HTMLElement | null = document.querySelector(selector);
     
     if (element) {
-        // Apply CSS style to force a page break *after* this element in the generated PDF.
-        // This is crucial for ensuring each extracted document content block starts on a new page.
-        element.style.pageBreakAfter = 'always';
-        
         // Return the outer HTML (including the element itself and its content).
         return element.outerHTML;
     } else {
@@ -198,31 +194,55 @@ export async function getElementOuterHtml(selector: string): Promise<string> {
  * as it converts original relative/absolute URLs (e.g., `/docs/my-page`) into
  * anchor links (e.g., `#my-page-id`) that point to elements within the merged document.
  *
+ * It also supports rewriting specific site domains/URLs to new ones, which is useful
+ * for redirecting links to production environments while fetching content from development/local ones.
+ *
  * @param pathToAnchors An array of tuples, where each tuple contains:
  * - `string`: The original path or href of a link (e.g., '/docs/introduction').
  * - `string`: The corresponding target anchor ID within the merged document
  * (e.g., 'id-timestamp-random').
+ * @param siteRewrites Optional. An array of [from, to] tuples for domain/URL rewriting.
  * @returns {Promise<void>} A Promise that resolves when all matching links have been rewritten.
  */
-export async function rewriteLinks(pathToAnchors: [string, string][]): Promise<void> {
+export async function rewriteLinks(pathToAnchors: [string, string][], siteRewrites?: [string, string][]): Promise<void> {
     // Select all <a> elements that have an 'href' attribute.
     // Cast to HTMLAnchorElement for proper TypeScript type inference and access to link-specific properties.
     const allLinks = document.querySelectorAll('a[href]');
-    
+
     for (let i = 0; i < allLinks.length; i++) {
         const element = allLinks[i] as HTMLAnchorElement;
         // Get the value of the 'href' attribute.
-        let linkPath = element.getAttribute('href') || '';
-        
+        let href = element.getAttribute('href') || '';
+
+        // Priority 1: Internal Documentation Anchor Rewriting
         // Iterate through the provided map of original paths to new anchor IDs.
+        let matchedInternal = false;
         for (let j = 0; j < pathToAnchors.length; j++) {
             const [path, anchor] = pathToAnchors[j];
             // If the current link's href matches an original path in the map,
             // rewrite its href to point to the new anchor ID.
-            if (linkPath === path) {
+            if (href === path) {
                 element.setAttribute('href', '#' + anchor);
+                matchedInternal = true;
                 // Break inner loop as we found a match for this link
                 break;
+            }
+        }
+
+        // Skip site rewrite if it's already an internal documentation link
+        if (matchedInternal) {
+            continue;
+        }
+
+        // Priority 2: External/Site Domain Rewriting
+        // If site rewrite rules are provided, check if the href matches any rule.
+        if (siteRewrites && siteRewrites.length > 0) {
+            for (const [from, to] of siteRewrites) {
+                if (href.includes(from)) {
+                    element.setAttribute('href', href.replace(from, to));
+                    // Break after the first matching rewrite rule
+                    break;
+                }
             }
         }
     }

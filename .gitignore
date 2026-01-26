@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+dist/
+*.pdf
+
+# IDE and OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Package manager lockfiles (if multiple exist, usually only one is kept)
+# Keeping yarn.lock as it was already in the repo, ignoring others if they are temporary
+package-lock.json
+
+# Environment variables
+.env
+.env.local
