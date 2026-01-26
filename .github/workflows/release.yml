@@ -1,0 +1,26 @@
+name: Release
+
+# 1. 触发条件配置 (必须修复这里)
+on:
+  push:
+    branches:
+      - main  # 当推送到 main 分支时触发
+
+# 2. 权限配置 (OIDC 必须)
+permissions:
+  contents: read
+  id-token: write 
+
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - run: yarn install
+      - run: yarn run build
+      - run: npm publish

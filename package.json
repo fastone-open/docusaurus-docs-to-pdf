@@ -1,10 +1,16 @@
 {
   "name": "docusaurus-docs-to-pdf",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A command-line tool to convert Docusaurus documentation sites to a single PDF file.",
-  "main": "main.js",
-  "bin": "./dist/main.js",
-  "repository": "https://github.com/fastone-open/docusaurus-docs-to-pdf.git",
+  "main": "dist/main.js",
+  "files": [
+    "dist"
+  ],
+  "bin": "dist/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fastone-open/docusaurus-docs-to-pdf.git"
+  },
   "author": "Xiangcheng Kuo <xiangcheng.guo@fastonetech.com>",
   "license": "MIT",
   "devDependencies": {
